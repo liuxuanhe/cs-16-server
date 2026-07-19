@@ -25,9 +25,9 @@ COPY scripts/strip-hlds.sh /tmp/strip-hlds.sh
 WORKDIR /opt/steam/hlds
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN test -x /opt/steam/hlds/hlds_run \
-    && sed -i 's/\r$//' /tmp/strip-hlds.sh \
-    && chmod +x /opt/steam/hlds/hlds_run /opt/steam/hlds/hlds_linux /tmp/strip-hlds.sh || true
+# 先去 CRLF（Windows 检出时 shebang 会变成 /bin/bash^M）；再 chmod；test -x 失败不阻断
+RUN sed -i 's/\r$//' /tmp/strip-hlds.sh \
+    && chmod +x /tmp/strip-hlds.sh /opt/steam/hlds/hlds_run /opt/steam/hlds/hlds_linux || true
 
 # ReHLDS
 RUN unzip -o /tmp/packages/rehlds.zip -d /tmp/rehlds \
@@ -94,8 +94,9 @@ RUN tar -xJf /tmp/packages/yapb.tar.xz -C /opt/steam/hlds/cstrike/ \
 RUN touch /opt/steam/hlds/cstrike/listip.cfg \
     && touch /opt/steam/hlds/cstrike/banned.cfg \
     && echo 10 > /opt/steam/hlds/steam_appid.txt \
-    && chmod +x /opt/steam/hlds/hlds_run /opt/steam/hlds/hlds_linux || true \
-    && /tmp/strip-hlds.sh /opt/steam/hlds
+    && sed -i 's/\r$//' /tmp/strip-hlds.sh \
+    && chmod +x /opt/steam/hlds/hlds_run /opt/steam/hlds/hlds_linux /tmp/strip-hlds.sh \
+    && bash /tmp/strip-hlds.sh /opt/steam/hlds
 
 COPY config/server.cfg /opt/steam/hlds/cstrike/server.cfg.default
 COPY config/server.cfg /opt/steam/hlds/cstrike/server.cfg
@@ -153,7 +154,8 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
 
 COPY --from=builder /opt/steam /opt/steam
 COPY entrypoint.sh /opt/steam/entrypoint.sh
-RUN chmod +x /opt/steam/entrypoint.sh \
+RUN sed -i 's/\r$//' /opt/steam/entrypoint.sh \
+    && chmod +x /opt/steam/entrypoint.sh \
     && chmod +x /opt/steam/hlds/hlds_run /opt/steam/hlds/hlds_linux || true
 
 WORKDIR /opt/steam/hlds
