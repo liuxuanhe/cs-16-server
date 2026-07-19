@@ -1,0 +1,23 @@
+# 构建上下文忽略项，加快 docker build、减小发送体积
+.git
+.gitignore
+.gitattributes
+README.md
+*.md
+.cursor
+agent-transcripts
+build.log
+maps/*
+!maps/.gitkeep
+!maps/README.txt
+
+# 本地缓存中不需要进 build context 的大文件
+.cache/hlds_full
+.cache/hlds.tar.gz
+.cache/*.tar.gz
+.cache/*.log
+
+# 构建脚本本身不必进镜像上下文（strip 需要保留）
+scripts/prepare-and-build.ps1
+scripts/prepare-and-build.sh
+scripts/hlds.install

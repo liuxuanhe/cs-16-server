@@ -1,0 +1,8 @@
+# 在容器内用 SteamCMD 安装 HLDS（需 seccomp=unconfined，Windows Docker 必需）
+force_install_dir /data/hlds
+login anonymous
+app_set_config 90 mod cstrike
+app_update 90 -beta steam_legacy
+app_update 90 -beta steam_legacy
+app_update 90 -beta steam_legacy validate
+quit

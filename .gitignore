@@ -1,0 +1,54 @@
+# ============================================================
+# CS 1.6 Docker 服务器 - Git 忽略规则
+# ============================================================
+
+# ----- 构建 / 日志 -----
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+
+# ----- SteamCMD / HLDS 预下载缓存（体积很大）-----
+.cache/
+.hlds/
+steamcmd/
+
+# ----- 自定义地图二进制（保留说明文件）-----
+maps/*
+!maps/.gitkeep
+!maps/README.txt
+!maps/**/.gitkeep
+
+# ----- 环境变量与密钥（勿上传密码）-----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets/
+
+# ----- 客户端补丁运行时备份 -----
+*.vdf.bak
+client-patch/*.bak
+
+# ----- Docker / 本地覆盖 -----
+docker-compose.override.yml
+docker-compose.*.local.yml
+
+# ----- OS / IDE -----
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+.cursor/
+*.code-workspace
+
+# ----- Python / 脚本临时文件 -----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
