@@ -202,34 +202,57 @@ if [ "${ENABLE_BOTS}" = "1" ] || [ "${ENABLE_BOTS}" = "true" ] || [ "${ENABLE_BO
     echo "[entrypoint] 警告: 未找到 YaPB 插件，无法启用机器人" >&2
   else
     BOT_DIFFICULTY_LEVEL="$(normalize_bot_difficulty "${BOT_DIFFICULTY}")"
+
+    # 机器人不能占满服务器，否则真人进不去
+    if [ "${BOT_QUOTA}" -ge "${MAXPLAYERS}" ]; then
+      BOT_QUOTA=$((MAXPLAYERS - 1))
+      if [ "${BOT_QUOTA}" -lt 0 ]; then BOT_QUOTA=0; fi
+      echo "[entrypoint] 警告: BOT_QUOTA 过大，已降为 ${BOT_QUOTA}（为真人预留空位）" >&2
+    fi
+
     echo "[entrypoint] 启用 YaPB 机器人，插件=${YAPB_SO}，数量=${BOT_QUOTA}，阵营=${BOT_JOIN_TEAM}，前缀=${BOT_NAME_PREFIX}，难度=${BOT_DIFFICULTY_LEVEL}"
     echo "${YAPB_LINE}" >> "${METAMOD_PLUGINS}"
 
-    # 覆盖 YaPB 自带默认（yapb.cfg 默认 yb_quota=9 + autovacate），避免比 BOT_QUOTA 多出机器人
+    # 给人预留空位，避免机器人占满 maxplayers 导致进不去
+    BOT_KEEP_SLOTS=$((MAXPLAYERS - BOT_QUOTA))
+    if [ "${BOT_KEEP_SLOTS}" -lt 1 ]; then
+      BOT_KEEP_SLOTS=1
+    fi
+    if [ "${BOT_KEEP_SLOTS}" -gt 8 ]; then
+      BOT_KEEP_SLOTS=8
+    fi
+
+    # 覆盖 YaPB 默认（yapb.cfg 里 yb_quota 默认是 9，会被 maxplayers 截成满员）
     YAPB_CFG="${CSTRIKE_DIR}/addons/yapb/conf/yapb.cfg"
     if [ -f "${YAPB_CFG}" ]; then
-      sed -i "s/^yb_quota .*/yb_quota \"${BOT_QUOTA}\"/" "${YAPB_CFG}" || true
-      sed -i 's/^yb_quota_mode .*/yb_quota_mode "normal"/' "${YAPB_CFG}" || true
-      sed -i 's/^yb_autovacate .*/yb_autovacate "0"/' "${YAPB_CFG}" || true
-      sed -i "s/^yb_join_team .*/yb_join_team \"${BOT_JOIN_TEAM}\"/" "${YAPB_CFG}" || true
-      sed -i "s/^yb_join_after_player .*/yb_join_after_player \"0\"/" "${YAPB_CFG}" || true
+      # 删掉旧值再追加，避免 sed 没命中
+      sed -i '/^yb_quota /d;/^yb_quota_mode /d;/^yb_autovacate /d;/^yb_autovacate_keep_slots /d;/^yb_join_team /d;/^yb_join_after_player /d' "${YAPB_CFG}" || true
+      cat >> "${YAPB_CFG}" <<EOF
+
+// --- overridden by entrypoint ---
+yb_quota "${BOT_QUOTA}"
+yb_quota_mode "normal"
+yb_autovacate "1"
+yb_autovacate_keep_slots "${BOT_KEEP_SLOTS}"
+yb_join_team "${BOT_JOIN_TEAM}"
+yb_join_after_player "0"
+EOF
     fi
 
     cat > "${BOTS_CFG}" <<EOF
 // 由 entrypoint 根据 ENABLE_BOTS 自动生成
 yb_quota_mode "normal"
-yb_quota ${BOT_QUOTA}
-yb_join_team ${BOT_JOIN_TEAM}
-yb_join_after_player 0
-yb_autovacate 0
+yb_quota "${BOT_QUOTA}"
+yb_join_team "${BOT_JOIN_TEAM}"
+yb_join_after_player "0"
+yb_autovacate "1"
+yb_autovacate_keep_slots "${BOT_KEEP_SLOTS}"
 yb_name_prefix "${BOT_NAME_PREFIX}"
-yb_difficulty ${BOT_DIFFICULTY_LEVEL}
-yb_difficulty_min -1
-yb_difficulty_max -1
+yb_difficulty "${BOT_DIFFICULTY_LEVEL}"
+yb_difficulty_min "-1"
+yb_difficulty_max "-1"
 EOF
     echo "exec bots.cfg" >> "${RUNTIME_CFG}"
-    # 启动参数再钉一次，防止插件先按默认 9 加人
-    set -- "$@" +yb_quota_mode normal +yb_quota "${BOT_QUOTA}" +yb_join_team "${BOT_JOIN_TEAM}" +yb_autovacate 0
   fi
 else
   echo "[entrypoint] 未启用机器人（ENABLE_BOTS=${ENABLE_BOTS}）"
@@ -237,7 +260,6 @@ fi
 
 # ---------- 启动 HLDS ----------
 cd "${HLDS_DIR}"
-EXTRA_ARGS=("$@")
 
 exec ./hlds_run \
   -game cstrike \
@@ -249,4 +271,4 @@ exec ./hlds_run \
   +maxplayers "${MAXPLAYERS}" \
   +map "${START_MAP}" \
   +sys_ticrate "${TICKRATE}" \
-  "${EXTRA_ARGS[@]}"
+  "$@"
