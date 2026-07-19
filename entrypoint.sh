@@ -204,17 +204,32 @@ if [ "${ENABLE_BOTS}" = "1" ] || [ "${ENABLE_BOTS}" = "true" ] || [ "${ENABLE_BO
     BOT_DIFFICULTY_LEVEL="$(normalize_bot_difficulty "${BOT_DIFFICULTY}")"
     echo "[entrypoint] 启用 YaPB 机器人，插件=${YAPB_SO}，数量=${BOT_QUOTA}，阵营=${BOT_JOIN_TEAM}，前缀=${BOT_NAME_PREFIX}，难度=${BOT_DIFFICULTY_LEVEL}"
     echo "${YAPB_LINE}" >> "${METAMOD_PLUGINS}"
+
+    # 覆盖 YaPB 自带默认（yapb.cfg 默认 yb_quota=9 + autovacate），避免比 BOT_QUOTA 多出机器人
+    YAPB_CFG="${CSTRIKE_DIR}/addons/yapb/conf/yapb.cfg"
+    if [ -f "${YAPB_CFG}" ]; then
+      sed -i "s/^yb_quota .*/yb_quota \"${BOT_QUOTA}\"/" "${YAPB_CFG}" || true
+      sed -i 's/^yb_quota_mode .*/yb_quota_mode "normal"/' "${YAPB_CFG}" || true
+      sed -i 's/^yb_autovacate .*/yb_autovacate "0"/' "${YAPB_CFG}" || true
+      sed -i "s/^yb_join_team .*/yb_join_team \"${BOT_JOIN_TEAM}\"/" "${YAPB_CFG}" || true
+      sed -i "s/^yb_join_after_player .*/yb_join_after_player \"0\"/" "${YAPB_CFG}" || true
+    fi
+
     cat > "${BOTS_CFG}" <<EOF
 // 由 entrypoint 根据 ENABLE_BOTS 自动生成
+yb_quota_mode "normal"
 yb_quota ${BOT_QUOTA}
 yb_join_team ${BOT_JOIN_TEAM}
 yb_join_after_player 0
+yb_autovacate 0
 yb_name_prefix "${BOT_NAME_PREFIX}"
 yb_difficulty ${BOT_DIFFICULTY_LEVEL}
 yb_difficulty_min -1
 yb_difficulty_max -1
 EOF
     echo "exec bots.cfg" >> "${RUNTIME_CFG}"
+    # 启动参数再钉一次，防止插件先按默认 9 加人
+    set -- "$@" +yb_quota_mode normal +yb_quota "${BOT_QUOTA}" +yb_join_team "${BOT_JOIN_TEAM}" +yb_autovacate 0
   fi
 else
   echo "[entrypoint] 未启用机器人（ENABLE_BOTS=${ENABLE_BOTS}）"
