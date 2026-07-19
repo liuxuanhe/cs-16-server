@@ -65,8 +65,14 @@ if [ -d "${CUSTOM_MAPS_DIR}" ]; then
     \) ! -name 'README.txt' -exec cp -f {} "${CSTRIKE_DIR}/maps/" \;
   find "${CUSTOM_MAPS_DIR}" -maxdepth 1 -type f -iname '*.wad' -print0 \
     | while IFS= read -r -d '' wad; do
+        dest="${CSTRIKE_DIR}/$(basename "${wad}")"
+        # 若 compose 已把 wad 直接挂到 cstrike/，源和目标是同一文件，跳过即可
+        if [ -e "${dest}" ] && [ "${wad}" -ef "${dest}" ]; then
+          echo "[entrypoint] WAD 已挂载就位: $(basename "${wad}")"
+          continue
+        fi
         echo "[entrypoint] 同步 WAD: $(basename "${wad}") -> ${CSTRIKE_DIR}/"
-        cp -f "${wad}" "${CSTRIKE_DIR}/"
+        cp -f "${wad}" "${dest}"
       done
 fi
 
