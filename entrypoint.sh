@@ -88,8 +88,11 @@ sync_config_file "amxx_chinese.cfg" "${AMXX_CN_CFG}"
 sync_config_file "users.ini" "${USERS_INI}"
 sync_config_file "reunion.cfg" "${CSTRIKE_DIR}/reunion.cfg"
 
-# ---------- 写入运行时 server.cfg ----------
-if [ -f "${CSTRIKE_DIR}/server.cfg.default" ]; then
+# ---------- 写入运行时 server.cfg（优先使用挂载的 config/server.cfg）----------
+if [ -f "${CONFIG_SRC_DIR}/server.cfg" ]; then
+  echo "[entrypoint] 使用挂载配置: server.cfg"
+  cp -f "${CONFIG_SRC_DIR}/server.cfg" "${RUNTIME_CFG}"
+elif [ -f "${CSTRIKE_DIR}/server.cfg.default" ]; then
   cp -f "${CSTRIKE_DIR}/server.cfg.default" "${RUNTIME_CFG}"
 fi
 
