@@ -54,11 +54,20 @@ echo "[entrypoint] 最大人数: ${MAXPLAYERS}"
 echo "[entrypoint] 初始金钱: ${START_MONEY}"
 echo "[entrypoint] 机器人: ENABLE_BOTS=${ENABLE_BOTS}"
 
-# ---------- 同步自定义地图 ----------
+# ---------- 同步自定义地图 / 资源 ----------
+# .bsp/.nav/.res/.txt → cstrike/maps/
+# .wad → cstrike/（引擎从游戏根目录加载材质包，放 maps/ 下常找不到）
 if [ -d "${CUSTOM_MAPS_DIR}" ]; then
   echo "[entrypoint] 同步自定义地图: ${CUSTOM_MAPS_DIR} -> ${CSTRIKE_DIR}/maps"
   mkdir -p "${CSTRIKE_DIR}/maps"
-  find "${CUSTOM_MAPS_DIR}" -maxdepth 1 -type f ! -name 'README.txt' ! -name '.gitkeep' -exec cp -f {} "${CSTRIKE_DIR}/maps/" \;
+  find "${CUSTOM_MAPS_DIR}" -maxdepth 1 -type f \( \
+      -iname '*.bsp' -o -iname '*.nav' -o -iname '*.res' -o -iname '*.txt' -o -iname '*.detail' \
+    \) ! -name 'README.txt' -exec cp -f {} "${CSTRIKE_DIR}/maps/" \;
+  find "${CUSTOM_MAPS_DIR}" -maxdepth 1 -type f -iname '*.wad' -print0 \
+    | while IFS= read -r -d '' wad; do
+        echo "[entrypoint] 同步 WAD: $(basename "${wad}") -> ${CSTRIKE_DIR}/"
+        cp -f "${wad}" "${CSTRIKE_DIR}/"
+      done
 fi
 
 # ---------- 同步可覆盖的配置 ----------

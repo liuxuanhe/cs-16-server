@@ -12,7 +12,8 @@ services:
     # Docker 19.x + Ubuntu 22.04：默认 seccomp 会让 test -x / hlds_run 误判失败
     security_opt:
       - seccomp:unconfined
-    shm_size: "1gb"
+    # 小规格机器（1G）勿用 1gb，否则容器启动 prestart 易 OOM；HLDS 一般 64m 够用
+    shm_size: "64mb"
     ports:
       # CS 1.6 主要使用 UDP；TCP 一并映射便于部分客户端/工具
       - "27015:27015/udp"
@@ -23,7 +24,7 @@ services:
       RCON_PASSWORD: "36184416"
       # 进服密码：加入服务器时用；留空=公开。不能用于 H 键 RCON
       SERVER_PASSWORD: "2026"
-      START_MAP: "cs_assault"
+      START_MAP: "fy_iceworld"
       MAXPLAYERS: "16"
       TICKRATE: "100"
       # 初始金钱（CS 1.6 上限一般为 16000）
